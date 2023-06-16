@@ -3,6 +3,7 @@ using DapperExample1225.Entities;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -27,19 +28,33 @@ namespace DapperExample1225
         public MainWindow()
         {
             InitializeComponent();
+            // GetAllCaller();
+
+
+            //var player = GetById(1);
+            //player.Score = 50;
+            //player.Name = "New Gamer";
+            //Update(player); 
+
             //GetAllCaller();
 
+            //Insert(new Player
+            //{
+            //    Name = "John",
+            //    Score = 88,
+            //    IsStar = false
+            //});
 
-            var player = GetById(1);
-            myDataGrid.ItemsSource = new List<Player> { player };
+            //  Delete(4);
+            // GetAllCaller();
+            CallSP(94);
+           // myDataGrid.ItemsSource = new List<Player> { player };
         }
 
         public async void GetAllCaller()
         {
            var players = await GetAllAsync();
            myDataGrid.ItemsSource = players;
-
-
         }
 
         public async Task<List<Player>> GetAllAsync()
@@ -55,6 +70,16 @@ namespace DapperExample1225
             return players;
         }
 
+        public void CallSP(float score)
+        {
+            var conn = ConfigurationManager.ConnectionStrings["MyConn"].ConnectionString;
+            using (var connection = new SqlConnection(conn))
+            {
+                var data = connection.Query<Player>("ShowGreaterThan", new { pScore = score }, commandType: CommandType.StoredProcedure);
+                myDataGrid.ItemsSource = data;  
+            }
+        }
+
         public Player GetById(int id)
         {
             var conn = ConfigurationManager.ConnectionStrings["MyConn"].ConnectionString;
@@ -63,6 +88,44 @@ namespace DapperExample1225
                 var player = connection
                     .QueryFirstOrDefault<Player>("SELECT * FROM Players WHERE Id=@PId",new {PId=id });
                 return player;
+            }
+        }
+
+        public void Insert(Player player)
+        {
+            var conn = ConfigurationManager.ConnectionStrings["MyConn"].ConnectionString;
+            using (var connection = new SqlConnection(conn))
+            {
+                connection.Execute(@"
+            INSERT INTO Players(Name,Score,IsStar)
+            VALUES(@PName,@PScore,@PIsStar)
+            ",new {PName=player.Name,PScore=player.Score,PIsStar=player.IsStar});
+                MessageBox.Show("Player Added Successfully");
+
+                GetAllCaller();
+            }
+        }
+
+        public void Delete(int id)
+        {
+            var conn = ConfigurationManager.ConnectionStrings["MyConn"].ConnectionString;
+            using (var connection = new SqlConnection(conn))
+            {
+                connection.Execute(@"DELETE FROM Players WHERE Id=@PId", new { PId = id });
+            }
+        }
+
+        public void Update(Player player)
+        {
+            var conn = ConfigurationManager.ConnectionStrings["MyConn"].ConnectionString;
+            using (var connection=new SqlConnection(conn))
+            {
+                connection.Execute(@"
+                    UPDATE Players
+                    SET Name=@PName,Score=@PScore,IsStar=@PIsStar
+                    WHERE Id=@PId
+                    ",new { PName=player.Name,PScore=player.Score,PIsStar=player.IsStar,
+                        PId=player.Id});
             }
         }
 
